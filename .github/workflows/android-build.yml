@@ -1,0 +1,47 @@
+
+name: Build COCO APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Find Gradle wrapper
+        run: |
+          echo "Searching for gradlew..."
+          find . -type f -name gradlew
+
+      - name: Build Debug APK
+        run: |
+          GRADLEW=$(find . -type f -name gradlew | head -n 1)
+          if [ -z "$GRADLEW" ]; then
+            echo "ERROR: gradlew file not found"
+            echo "Repository files:"
+            ls -la
+            exit 1
+          fi
+          chmod +x "$GRADLEW"
+          cd "$(dirname "$GRADLEW")"
+          ./"$(basename "$GRADLEW")" assembleDebug
+
+      - name: Upload APK
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: COCO-debug-APK
+          path: "**/build/outputs/apk/debug/*.apk"
